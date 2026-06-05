@@ -2,7 +2,7 @@ use axum::Router;
 use diem_backend::{
     auth,
     config::{AppConfig, AppState},
-    users,
+    health, users,
 };
 use sqlx::postgres::PgPoolOptions;
 use tower_http::{
@@ -39,6 +39,7 @@ async fn main() -> anyhow::Result<()> {
     let app = Router::new()
         .merge(auth::routes::routes())
         .merge(users::routes::routes())
+        .merge(health::routes::routes())
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)
