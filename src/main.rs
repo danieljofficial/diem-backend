@@ -1,6 +1,6 @@
 use axum::Router;
 use diem_backend::{
-    auth,
+    auth, checkins,
     config::{AppConfig, AppState},
     health, users,
 };
@@ -40,6 +40,7 @@ async fn main() -> anyhow::Result<()> {
         .merge(auth::routes::routes())
         .merge(users::routes::routes())
         .merge(health::routes::routes())
+        .merge(checkins::routes::routes())
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)
