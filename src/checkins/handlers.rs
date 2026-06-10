@@ -139,22 +139,12 @@ pub async fn status(
     .await?;
 
     // CalculThis calculates the the current streak.
-    // Imagine you have an array of dates sorted descending: [June 5, June 4, June 3, June 1]
-    // Subtract each date's index: [June 5-0, June 4-1, June 3-2, June 1-3]
-    // Result:                      [June 5,   June 3,   June 1,   May 29]
-    // Consecutive dates produce the SAME value (June 5, 4, 3 → all map to different
-    // values because row_number is 1-based in SQL). The GROUP with the most recent
-    // date that includes today (or yesterday if not checked in yet today) is the streak.
-    //
-    // In SQL, row_number() over (ORDER BY check_in_date DESC) gives us the index.
-    // check_in_date - row_number() gives us the group key.
-    // We count how many rows share the group key that contains today.
     let streak = sqlx::query_scalar!(
         r#"
         WITH grouped AS (
             SELECT
                 check_in_date,
-                check_in_date - CAST(ROW_NUMBER() OVER (ORDER BY check_in_date DESC) AS int) AS grp
+                check_in_date + CAST(ROW_NUMBER() OVER (ORDER BY check_in_date DESC) AS int) AS grp
             FROM check_ins
             WHERE user_id = $1
         )

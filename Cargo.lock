@@ -385,6 +385,7 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "dotenvy",
+ "http",
  "jsonwebtoken",
  "serde",
  "serde_json",
