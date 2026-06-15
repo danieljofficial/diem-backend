@@ -69,7 +69,7 @@ pub async fn check_in(
     let tz: chrono_tz::Tz = user_tz
         .parse()
         .map_err(|_| AppError::Internal(anyhow::anyhow!("Invalid stored timezone: {}", user_tz)))?;
-    let today_for_user = now.with_timezone(&tz).date_naive();
+    let today_for_user = client_timestamp.with_timezone(&tz).date_naive();
 
     let row = sqlx::query!(
         r#"

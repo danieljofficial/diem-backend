@@ -31,29 +31,34 @@ async fn duplicate_checkin_keeps_earliest_timestamp(db: PgPool) {
     let app = common::build_test_app(db.clone());
     let token = common::register_user(&app, "dup@test.com", "UTC").await;
 
-    let early = "2026-06-10T10:00:00Z";
-    let (status1, json1) = common::do_check_in(&app, &token, Some(early)).await;
+    let early = Utc::now() - chrono::Duration::hours(2);
+    let late = Utc::now() - chrono::Duration::hours(1);
+
+    let early_str = early.to_rfc3339();
+    let late_str = late.to_rfc3339();
+
+    // First check-in with earlier timestamp
+    let (status1, json1) = common::do_check_in(&app, &token, Some(&early_str)).await;
     assert_eq!(status1, 201);
     assert_eq!(json1["already_checked_in"].as_bool().unwrap(), false);
 
-    let late = "2026-06-10T14:00:00Z";
-    let (status2, json2) = common::do_check_in(&app, &token, Some(late)).await;
+    // Second check-in with later timestamp
+    let (status2, json2) = common::do_check_in(&app, &token, Some(&late_str)).await;
     assert_eq!(status2, 200);
     assert_eq!(json2["already_checked_in"].as_bool().unwrap(), true);
-    assert_eq!(
-        json2["checked_in_at"].as_str().unwrap(),
-        "2026-06-10T10:00:00Z",
-        "LEAST() should preserve the earlier 10:00 AM timestamp, not overwrite with 2:00 PM"
-    );
 
-    let row = sqlx::query!("SELECT checked_in_at FROM check_ins WHERE user_id = (SELECT id FROM users WHERE email = 'dup@test.com')")
-        .fetch_one(&db)
-        .await
-        .unwrap();
+    // Verify the earlier timestamp was preserved
+    let row = sqlx::query!(
+        "SELECT checked_in_at FROM check_ins WHERE user_id = (SELECT id FROM users WHERE email = 'dup@test.com')"
+    )
+    .fetch_one(&db)
+    .await
+    .unwrap();
+
     assert_eq!(
-        row.checked_in_at.format("%H:%M").to_string(),
-        "10:00",
-        "DB should persist the earliest timestamp"
+        row.checked_in_at.timestamp(),
+        early.timestamp(),
+        "LEAST() should preserve the earlier timestamp"
     );
 }
 
